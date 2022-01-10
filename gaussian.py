@@ -2,16 +2,17 @@ import spinmob as s
 import mcphysics
 import numpy as np
 
-def fit(peak_domain=None):
+def fit(peak_domain=None, initial_guess=None):
     """ Function to fit Gaussian to compton scattering data. 
     
     Parameter:
     ----------
-    peak_domain: list of size 2;
+    peak_domain: list of 2 num, domain of peak under consideration;
+    initial_guess: list of 3 num, initial guesses for parameters [A, b, sigma]
     
     Returns:
     --------
-    fit_parameters: parameters obtained through fitting;  
+    fit_parameters: array, parameters obtained through fitting [A, A.std, b, b.std, sigma, sigma.std];  
     """
 
     data_set = mcphysics.data.load_chns() # load .chn data files
@@ -32,7 +33,7 @@ def fit(peak_domain=None):
 
     if runs==1: # single run
         data = data_set[0] 
-        f.set_functions(f = 'A * exp(-0.5*((x - b)/sigma)**2)/(sigma*sqrt(2*pi))', p = 'A, b=1300, sigma = 10')
+        f.set_functions(f = 'A * exp(-0.5*((x - b)/sigma)**2)/(sigma*sqrt(2*pi))', p = str(initial_guess[0], initial_guess[1], initial_guess[2]))
         if peak_domain is None:
             f.set_data(xdata = data['Channel'], ydata = data['Counts'], xlabel='Channel', ylabel='Counts')
         else:
@@ -48,7 +49,7 @@ def fit(peak_domain=None):
     else: # multiple runs
         for i in range(0,runs):
             data = data_set[i]
-            f.set_functions(f = 'A * exp(-0.5*((x - b)/sigma)**2)/(sigma*sqrt(2*pi))', p = 'A, b=1300, sigma = 10')
+            f.set_functions(f = 'A * exp(-0.5*((x - b)/sigma)**2)/(sigma*sqrt(2*pi))', p = str(initial_guess[0], initial_guess[1], initial_guess[2]))
             if peak_domain is None:
                 f.set_data(xdata = data['Channel'], ydata = data['Counts'], xlabel='Channel', ylabel='Counts')
             else:
