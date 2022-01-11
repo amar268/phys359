@@ -1,12 +1,14 @@
 import spinmob as s
-import mcphysics
+import mcphysics as mc
 import numpy as np
+import os
 
-def fit(peak_domain=None, A0=None, b0=None, sigma0=None):
+def fit(path, peak_domain=None, A0=None, b0=None, sigma0=None):
     """ Function to fit Gaussian to compton scattering data. 
     
     Parameters:
     ----------
+    path: string, path of the directory containing the data files or path of a single data file
     peak_domain (optional): list of 2 int, domain of peak under consideration;
     A0 (optional): int, initial guess for parameter A;
     b0 (optional): int, initial guess for parameter b;
@@ -16,9 +18,11 @@ def fit(peak_domain=None, A0=None, b0=None, sigma0=None):
     --------
     fit_parameters: array, parameters obtained through fitting [A, A.std, b, b.std, sigma, sigma.std];  
     """
-
-    data_set = mcphysics.data.load_chns() # load .chn data files
-    runs = len(data_set) # number of data files loaded
+    # Find the number of runs or if it's a single file
+    try:
+        runs = len(os.listdir(path))
+    except:
+        runs = 1
     f = s.data.fitter() # initiate fitter object
     
     # initiate parameter arrays
@@ -34,7 +38,7 @@ def fit(peak_domain=None, A0=None, b0=None, sigma0=None):
             return TypeError('peak_domain must be a list of size 2.')
 
     if runs==1: # single run
-        data = data_set[0] 
+        data = mc.data.load_chns(path) # load the single .chn data file
         f.set_functions(f = 'A * exp(-0.5*((x - b)/sigma)**2)/(sigma*sqrt(2*pi))', p = 'A='+str(A0)+',b='+str(b0)+',sigma='+str(sigma0))
         if peak_domain is None:
             f.set_data(xdata = data['Channel'], ydata = data['Counts'], xlabel='Channel', ylabel='Counts')
@@ -49,6 +53,7 @@ def fit(peak_domain=None, A0=None, b0=None, sigma0=None):
         sigma_std = f.get_fit_results()['sigma.std']
 
     else: # multiple runs
+        data_set = mc.data.load_chns_directory(path)
         for i in range(0,runs):
             data = data_set[i]
             f.set_functions(f = 'A * exp(-0.5*((x - b)/sigma)**2)/(sigma*sqrt(2*pi))', p = 'A='+str(A0)+',b='+str(b0)+',sigma='+str(sigma0))
@@ -57,9 +62,8 @@ def fit(peak_domain=None, A0=None, b0=None, sigma0=None):
             else:
                 print(data)
                 f.set_data(xdata = data['Channel'][peak_domain[0]:peak_domain[1]], ydata = data['Counts'][peak_domain[0]:peak_domain[1]], xlabel='Channel', ylabel='Counts')
-            f.fit()
-            A[i] = f.get_fit_results()['A']
             f.fit() # fit to data
+            A[i] = f.get_fit_results()['A']
             A_std[i] = f.get_fit_results()['A.std']
             b[i] = f.get_fit_results()['b']
             b_std[i] = f.get_fit_results()['b.std']
